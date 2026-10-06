@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>살아남아 고양이 (Cat Survival)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+
+    * {
+      font-family: 'Jua', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      background-color: #0f172a;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
+    @keyframes floatBounce {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(1.5deg); }
+    }
+
+    .animate-bounce-slow {
+      animation: floatBounce 2.5s ease-in-out infinite;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      border: 3px solid rgba(251, 191, 36, 0.8);
+      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex items-center justify-center bg-slate-950">
+
+  <div class="relative w-full max-w-md h-full max-h-[750px] sm:h-[90vh] sm:rounded-3xl shadow-2xl overflow-hidden border-0 sm:border-8 border-indigo-900 bg-slate-950 flex flex-col">
+    
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas" class="w-full h-full block cursor-pointer"></canvas>
+
+    <div id="startScreen" class="absolute inset-0 flex flex-col items-center justify-between p-6 z-10 pointer-events-auto">
+      <!-- Title Header -->
+      <div class="mt-8 text-center animate-bounce-slow">
+        <h1 class="text-4xl sm:text-5xl font-black text-amber-300 drop-shadow-[0_4px_0_rgba(180,83,9,0.9)] tracking-wider">
+          살아남아 고양이 🐱
+        </h1>
+        <p class="text-indigo-200 text-base sm:text-lg font-bold mt-2 drop-shadow">반짝이는 밤하늘을 날아올라라!</p>
+      </div>
+
+      <!-- Cat Character Graphic -->
+      <div class="relative w-28 h-28 flex items-center justify-center my-auto">
+        <div class="w-24 h-24 rounded-full bg-amber-400 border-4 border-amber-600 flex items-center justify-center shadow-xl relative animate-pulse">
+          <div class="absolute -top-3 left-1 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[18px] border-b-amber-500 -rotate-12"></div>
+          <div class="absolute -top-3 right-1 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[18px] border-b-amber-500 rotate-12"></div>
+          <div class="absolute left-5 top-7 w-3.5 h-4 bg-slate-900 rounded-full flex items-center justify-center">
+            <div class="w-1.5 h-1.5 bg-white rounded-full -translate-x-0.5 -translate-y-0.5"></div>
+          </div>
+          <div class="absolute right-5 top-7 w-3.5 h-4 bg-slate-900 rounded-full flex items-center justify-center">
+            <div class="w-1.5 h-1.5 bg-white rounded-full -translate-x-0.5 -translate-y-0.5"></div>
+          </div>
+          <div class="absolute top-11 w-2.5 h-2 bg-pink-500 rounded-full"></div>
+          <div class="absolute left-3 top-10 w-3 h-2 bg-pink-300/80 rounded-full"></div>
+          <div class="absolute right-3 top-10 w-3 h-2 bg-pink-300/80 rounded-full"></div>
+          <div class="absolute -left-1 top-11 w-4 h-0.5 bg-amber-800 -rotate-6"></div>
+          <div class="absolute -right-1 top-11 w-4 h-0.5 bg-amber-800 rotate-6"></div>
+        </div>
+      </div>
+
+      <!-- Start Button Guide -->
+      <div class="mb-8 w-full max-w-xs">
+        <button onclick="handleAction()" class="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white font-black text-xl rounded-2xl border-b-4 border-orange-600 active:border-b-0 active:translate-y-1 transition-all shadow-lg flex items-center justify-center gap-2">
+          <i class="fa-solid fa-play"></i> 클릭해서 시작
+        </button>
+      </div>
+    </div>
+
+    <div id="playingScreen" class="absolute top-4 sm:top-6 left-0 right-0 px-4 sm:px-6 flex justify-between items-center pointer-events-none hidden z-10">
+      <!-- Lives HUD (Top Left) -->
+      <div id="livesContainer" class="px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-900/80 backdrop-blur-md border-2 border-rose-400/80 rounded-full shadow-lg flex items-center gap-1.5 sm:gap-2 text-rose-500 text-lg sm:text-2xl">
+        <i id="heart1" class="fa-solid fa-heart drop-shadow-sm transition-all duration-300"></i>
+        <i id="heart2" class="fa-solid fa-heart drop-shadow-sm transition-all duration-300"></i>
+        <i id="heart3" class="fa-solid fa-heart drop-shadow-sm transition-all duration-300"></i>
+      </div>
+
+      <!-- Center Score & Status Badges -->
+      <div class="flex flex-col items-center gap-1">
+        <div class="px-4 py-1.5 sm:px-5 sm:py-2 bg-slate-900/80 backdrop-blur-md border-2 border-amber-400/80 rounded-full shadow-lg flex items-center gap-2 sm:gap-3">
+          <span id="currentScore" class="text-2xl sm:text-3xl font-black text-amber-300">0</span>
+          <span id="speedBadge" class="text-xs sm:text-sm font-bold text-amber-900 bg-amber-300 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border border-amber-400 shadow-inner">⚡ 1.0x</span>
+        </div>
+        <!-- Wet Status Indicator Badge -->
+        <div id="wetBadge" class="hidden px-2.5 py-0.5 bg-cyan-600/90 text-white font-bold text-xs rounded-full border border-cyan-300 shadow-md animate-pulse">
+          💦 물에 젖음! (점프 둔화)
+        </div>
+        <!-- Armor Status Indicator Badge -->
+        <div id="armorBadge" class="hidden px-2.5 py-0.5 bg-amber-500/90 text-slate-900 font-bold text-xs rounded-full border border-amber-200 shadow-md animate-pulse">
+          🛡️ 갑옷 보호 중!
+        </div>
+      </div>
+
+      <div class="w-10 sm:w-11"></div>
+    </div>
+
+    <div id="gameOverScreen" class="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 hidden z-20 pointer-events-auto">
+      <div class="glass-card w-full max-w-xs p-6 rounded-3xl text-center shadow-2xl flex flex-col items-center animate-bounce-slow">
+        
+        <h2 class="text-3xl font-black text-rose-500 drop-shadow-sm mb-4 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-heart-crack"></i> 게임 오버
+        </h2>
+
+        <!-- Score Board -->
+        <div class="w-full bg-amber-50/90 rounded-2xl p-4 border-2 border-amber-300 mb-6 space-y-3">
+          <div class="flex justify-between items-center border-b border-amber-200 pb-2">
+            <span class="text-slate-600 font-bold">이번 점수</span>
+            <span id="finalScore" class="text-3xl font-black text-amber-500">0</span>
+          </div>
+          <div class="flex justify-between items-center pt-1">
+            <span class="text-slate-600 font-bold">최고 기록 👑</span>
+            <span id="highScore" class="text-2xl font-black text-amber-600">0</span>
+          </div>
+        </div>
+
+        <!-- Replay Button -->
+        <button onclick="restartGame(event)" class="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white font-black text-xl rounded-2xl border-b-4 border-orange-600 active:border-b-0 active:translate-y-1 transition-all shadow-lg flex items-center justify-center gap-2">
+          <i class="fa-solid fa-rotate-right"></i> 다시하기
+        </button>
+      </div>
+    </div>
+
+    <!-- Mute / Sound Toggle Button -->
+    <button id="soundBtn" onclick="toggleSound(event)" class="absolute top-4 right-4 z-30 w-11 h-11 bg-slate-900/80 hover:bg-slate-800 text-amber-400 rounded-full border-2 border-amber-400/80 shadow-md flex items-center justify-center transition pointer-events-auto">
+      <i id="soundIcon" class="fa-solid fa-volume-high text-lg"></i>
+    </button>
+  </div>
+
+  <script>
+    const AudioEngine = {
+      ctx: null,
+      muted: false,
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+
+      playJump() {
+        if (this.muted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(380, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(820, this.ctx.currentTime + 0.14);
+          gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.14);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.14);
+        } catch (e) {}
+      },
+
+      playScore() {
+        if (this.muted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, this.ctx.currentTime);
+          osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.22);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.22);
+        } catch (e) {}
+      },
+
+      playBonus() {
+        if (this.muted || !this.ctx) return;
+        try {
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.06);
+            gain.gain.setValueAtTime(0.25, this.ctx.currentTime + i * 0.06);
+            gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.06 + 0.2);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + i * 0.06);
+            osc.stop(this.ctx.currentTime + i * 0.06 + 0.2);
+          });
+        } catch (e) {}
+      },
+
+      playArmor() {
+        if (this.muted || !this.ctx) return;
+        try {
+          const notes = [440, 554.37, 659.25, 880];
+          notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.05);
+            gain.gain.setValueAtTime(0.3, this.ctx.currentTime + i * 0.05);
+            gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.05 + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + i * 0.05);
+            osc.stop(this.ctx.currentTime + i * 0.05 + 0.25);
+          });
+        } catch (e) {}
+      },
+
+      playSplash() {
+        if (this.muted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.25);
+          gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.25);
+        } catch (e) {}
+      },
+
+      playHit() {
+        if (this.muted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(40, this.ctx.currentTime + 0.22);
+          gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.22);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.22);
+        } catch (e) {}
+      }
+    };
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    let gameState = 'START';
+    let score = 0;
+    let lives = 3;
+    let invulnerabilityTimer = 0;
+    let highScore = parseInt(localStorage.getItem('cat_survival_high_score') || '0');
+    let frameCount = 0;
+    let groundOffset = 0;
+
+    // Game Constants
+    const GRAVITY = 0.12;
+    const JUMP_STRENGTH_NORMAL = -3.8;
+    const JUMP_STRENGTH_WET = -2.6;
+    const GROUND_HEIGHT = 80;
+    const BASE_PIPE_SPEED = 1.4;
+    const MAX_SPEED_MULTIPLIER = 3.0; // Speed capped at 3x max
+    let pipeSpawnDistanceCounter = 0;
+    const PIPE_SPAWN_INTERVAL = 270;
+
+    const cat = {
+      x: 80,
+      y: 0,
+      radius: 19,
+      velocity: 0,
+      rotation: 0,
+      tailAngle: 0,
+      wetTimer: 0,
+      hasArmor: false,
+
+      reset() {
+        this.x = canvas.width * 0.28;
+        this.y = canvas.height * 0.42;
+        this.velocity = 0;
+        this.rotation = 0;
+        this.wetTimer = 0;
+        this.hasArmor = false;
+      },
+
+      update() {
+        if (this.wetTimer > 0) {
+          this.wetTimer--;
+          if (Math.random() < 0.4) {
+            createParticles(this.x + (Math.random() * 20 - 10), this.y + 12, '#38bdf8', 1);
+          }
+        }
+
+        if (gameState === 'PLAYING') {
+          this.velocity += GRAVITY;
+          this.y += this.velocity;
+          this.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 6, this.velocity * 0.065));
+          this.tailAngle += 0.15;
+        } else if (gameState === 'START') {
+          this.y = canvas.height * 0.42 + Math.sin(frameCount * 0.05) * 8;
+          this.tailAngle += 0.1;
+        }
+      },
+
+      jump() {
+        const jumpVel = (this.wetTimer > 0) ? JUMP_STRENGTH_WET : JUMP_STRENGTH_NORMAL;
+        this.velocity = jumpVel;
+        AudioEngine.playJump();
+
+        const particleColor = this.hasArmor ? '#fbbf24' : (this.wetTimer > 0 ? '#38bdf8' : '#fde047');
+        createParticles(this.x - 6, this.y + 10, particleColor, 6);
+      },
+
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+
+        const isWet = this.wetTimer > 0;
+        const mainCatColor = isWet ? '#38BDF8' : '#FACC15';
+        const darkOutlineColor = isWet ? '#0284C7' : '#D97706';
+
+        // 1. Armor Shield Aura
+        if (this.hasArmor) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.9)';
+          ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(0, 0, this.radius + 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.strokeStyle = '#93C5FD';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 4]);
+          ctx.beginPath();
+          ctx.arc(0, 0, this.radius + 11, frameCount * 0.05, frameCount * 0.05 + Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 2. Wiggling Tail
+        const tailWiggle = Math.sin(this.tailAngle) * 6;
+        ctx.strokeStyle = darkOutlineColor;
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-this.radius + 2, 5);
+        ctx.quadraticCurveTo(-this.radius - 12, 10 + tailWiggle, -this.radius - 10, -6 + tailWiggle);
+        ctx.stroke();
+
+        ctx.strokeStyle = mainCatColor;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // 3. Ears
+        ctx.fillStyle = mainCatColor;
+        ctx.strokeStyle = darkOutlineColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-16, -10); ctx.lineTo(-8, -26); ctx.lineTo(-2, -15);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#F472B6';
+        ctx.beginPath();
+        ctx.moveTo(-13, -12); ctx.lineTo(-8, -21); ctx.lineTo(-4, -15);
+        ctx.closePath(); ctx.fill();
+
+        ctx.fillStyle = mainCatColor;
+        ctx.beginPath();
+        ctx.moveTo(2, -15); ctx.lineTo(8, -26); ctx.lineTo(16, -10);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#F472B6';
+        ctx.beginPath();
+        ctx.moveTo(4, -15); ctx.lineTo(8, -21); ctx.lineTo(13, -12);
+        ctx.closePath(); ctx.fill();
+
+        // 4. Head Body
+        ctx.fillStyle = mainCatColor;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = darkOutlineColor;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // Helmet overlay if wearing Armor
+        if (this.hasArmor) {
+          ctx.fillStyle = '#94A3B8';
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, -3, this.radius - 2, Math.PI, Math.PI * 2);
+          ctx.closePath();
+          ctx.fill(); ctx.stroke();
+
+          ctx.fillStyle = '#F59E0B';
+          ctx.beginPath();
+          ctx.arc(0, -this.radius + 1, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 5. Cheeks
+        ctx.fillStyle = 'rgba(244, 114, 182, 0.75)';
+        ctx.beginPath();
+        ctx.arc(-10, 4, 3.5, 0, Math.PI * 2);
+        ctx.arc(10, 4, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 6. Eyes
+        ctx.fillStyle = '#0F172A';
+        ctx.beginPath();
+        ctx.arc(-7, -3, 3.5, 0, Math.PI * 2);
+        ctx.arc(7, -3, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(-8, -4.5, 1.2, 0, Math.PI * 2);
+        ctx.arc(6, -4.5, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 7. Nose & Whiskers
+        ctx.fillStyle = '#EC4899';
+        ctx.beginPath();
+        ctx.moveTo(-2, 2); ctx.lineTo(2, 2); ctx.lineTo(0, 4.5);
+        ctx.closePath(); ctx.fill();
+
+        ctx.strokeStyle = darkOutlineColor;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-11, 2); ctx.lineTo(-20, 0);
+        ctx.moveTo(-11, 5); ctx.lineTo(-19, 7);
+        ctx.moveTo(11, 2);  ctx.lineTo(20, 0);
+        ctx.moveTo(11, 5);  ctx.lineTo(19, 7);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+    };
+
+    let pipes = [];
+    const PIPE_WIDTH = 62;
+    const PIPE_GAP = 175;
+    let dogs = [];
+    let armorItems = [];
+
+    function createPipe() {
+      const minHeight = 60;
+      const maxHeight = canvas.height - GROUND_HEIGHT - PIPE_GAP - minHeight;
+      const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+
+      // 35% chance for water stream
+      const hasWater = Math.random() < 0.35;
+
+      pipes.push({
+        x: canvas.width,
+        topHeight: topHeight,
+        bottomY: topHeight + PIPE_GAP,
+        hasWater: hasWater,
+        waterHeight: 65,
+        passed: false
+      });
+
+      // 20% chance to spawn a Flying Dog Face near Upper or Lower edge
+      if (Math.random() < 0.20) {
+        const flyAtTop = Math.random() < 0.5;
+        const dogY = flyAtTop ? (topHeight + 28) : (topHeight + PIPE_GAP - 28);
+
+        dogs.push({
+          x: canvas.width + PIPE_WIDTH + 80,
+          y: Math.min(Math.max(dogY, 65), canvas.height - GROUND_HEIGHT - 65),
+          radius: 17,
+          vx: 0.8
+        });
+      }
+
+      // 18% chance to spawn a collectible Armor Item in the middle of gap
+      if (Math.random() < 0.18) {
+        const armorY = topHeight + (PIPE_GAP / 2) + (Math.random() - 0.5) * 30;
+        armorItems.push({
+          x: canvas.width + (PIPE_WIDTH / 2),
+          y: Math.min(Math.max(armorY, 70), canvas.height - GROUND_HEIGHT - 70),
+          radius: 16,
+          collected: false
+        });
+      }
+    }
+
+    function drawPipes() {
+      pipes.forEach(pipe => {
+        const topGradient = ctx.createLinearGradient(pipe.x, 0, pipe.x + PIPE_WIDTH, 0);
+        topGradient.addColorStop(0, '#15803d');
+        topGradient.addColorStop(0.3, '#4ade80');
+        topGradient.addColorStop(0.7, '#22c55e');
+        topGradient.addColorStop(1, '#166534');
+
+        ctx.fillStyle = topGradient;
+        ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
+        ctx.strokeStyle = '#064e3b';
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
+
+        ctx.fillRect(pipe.x - 4, pipe.topHeight - 24, PIPE_WIDTH + 8, 24);
+        ctx.strokeRect(pipe.x - 4, pipe.topHeight - 24, PIPE_WIDTH + 8, 24);
+
+        if (pipe.hasWater) {
+          const waterX = pipe.x + 8;
+          const waterW = PIPE_WIDTH - 16;
+          const waterY = pipe.topHeight;
+          const waterH = pipe.waterHeight + Math.sin(frameCount * 0.2) * 5;
+
+          const waterGrad = ctx.createLinearGradient(waterX, waterY, waterX + waterW, waterY + waterH);
+          waterGrad.addColorStop(0, 'rgba(56, 189, 248, 0.9)');
+          waterGrad.addColorStop(0.7, 'rgba(14, 165, 233, 0.7)');
+          waterGrad.addColorStop(1, 'rgba(186, 230, 253, 0.2)');
+
+          ctx.fillStyle = waterGrad;
+          ctx.fillRect(waterX, waterY, waterW, waterH);
+
+          ctx.fillStyle = '#E0F2FE';
+          for (let i = 0; i < 3; i++) {
+            const dropY = waterY + ((frameCount * 3 + i * 20) % waterH);
+            const dropX = waterX + 6 + (i * 12);
+            ctx.beginPath();
+            ctx.arc(dropX, dropY, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        const bottomHeight = canvas.height - GROUND_HEIGHT - pipe.bottomY;
+        ctx.fillStyle = topGradient;
+        ctx.fillRect(pipe.x, pipe.bottomY, PIPE_WIDTH, bottomHeight);
+        ctx.strokeStyle = '#064e3b';
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(pipe.x, pipe.bottomY, PIPE_WIDTH, bottomHeight);
+
+        ctx.fillRect(pipe.x - 4, pipe.bottomY, PIPE_WIDTH + 8, 24);
+        ctx.strokeRect(pipe.x - 4, pipe.bottomY, PIPE_WIDTH + 8, 24);
+      });
+    }
+
+    function drawDogs() {
+      dogs.forEach(dog => {
+        ctx.save();
+        ctx.translate(dog.x, dog.y);
+
+        const earAngle = Math.sin(frameCount * 0.25) * 0.15;
+
+        // Floppy Dog Ears
+        ctx.fillStyle = '#854D0E';
+        ctx.strokeStyle = '#451A03';
+        ctx.lineWidth = 2;
+
+        ctx.save();
+        ctx.rotate(-0.3 + earAngle);
+        ctx.beginPath();
+        ctx.ellipse(-14, -10, 8, 16, -0.2, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+
+        ctx.save();
+        ctx.rotate(0.3 - earAngle);
+        ctx.beginPath();
+        ctx.ellipse(14, -10, 8, 16, 0.2, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+
+        // Main Head
+        ctx.fillStyle = '#F59E0B';
+        ctx.strokeStyle = '#B45309';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, dog.radius, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // Snout
+        ctx.fillStyle = '#FEF3C7';
+        ctx.beginPath();
+        ctx.ellipse(0, 4, 10, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#1E1B4B';
+        ctx.beginPath();
+        ctx.arc(0, 1, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#0F172A';
+        ctx.beginPath();
+        ctx.arc(-7, -4, 3, 0, Math.PI * 2);
+        ctx.arc(7, -4, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#EF4444';
+        ctx.beginPath();
+        ctx.arc(0, 8, 3, 0, Math.PI);
+        ctx.fill();
+
+        ctx.restore();
+      });
+    }
+
+    function drawArmorItems() {
+      armorItems.forEach(item => {
+        if (item.collected) return;
+        ctx.save();
+        ctx.translate(item.x, item.y + Math.sin(frameCount * 0.1) * 4);
+
+        const glow = ctx.createRadialGradient(0, 0, 4, 0, 0, 22);
+        glow.addColorStop(0, 'rgba(251, 191, 36, 0.8)');
+        glow.addColorStop(1, 'rgba(251, 191, 36, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, 22, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#3B82F6';
+        ctx.strokeStyle = '#F59E0B';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, -14); ctx.lineTo(12, -8); ctx.lineTo(10, 6); ctx.lineTo(0, 14); ctx.lineTo(-10, 6); ctx.lineTo(-12, -8);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#FDE047';
+        ctx.beginPath();
+        ctx.moveTo(0, -8); ctx.lineTo(6, -4); ctx.lineTo(5, 3); ctx.lineTo(0, 8); ctx.lineTo(-5, 3); ctx.lineTo(-6, -4);
+        ctx.closePath(); ctx.fill();
+
+        ctx.restore();
+      });
+    }
+
+    let stars = [];
+    function initStars() {
+      stars = [];
+      for (let i = 0; i < 40; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * (canvas.height - GROUND_HEIGHT),
+          radius: Math.random() * 1.8 + 0.5,
+          alpha: Math.random(),
+          speed: Math.random() * 0.03 + 0.01
+        });
+      }
+    }
+
+    let clouds = [
+      { x: 40, y: 70, scale: 0.8, speed: 0.3 },
+      { x: 210, y: 130, scale: 1.1, speed: 0.4 },
+      { x: 360, y: 55, scale: 0.9, speed: 0.35 }
+    ];
+
+    function drawBackground() {
+      const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      skyGradient.addColorStop(0, '#0F172A');
+      skyGradient.addColorStop(0.5, '#1E1B4B');
+      skyGradient.addColorStop(1, '#312E81');
+      ctx.fillStyle = skyGradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (stars.length === 0) initStars();
+      stars.forEach(star => {
+        star.alpha += star.speed;
+        if (star.alpha > 1 || star.alpha < 0.2) star.speed = -star.speed;
+
+        ctx.save();
+        ctx.globalAlpha = Math.abs(star.alpha);
+        ctx.fillStyle = '#FEF08A';
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Moon
+      ctx.save();
+      const moonX = canvas.width - 65;
+      const moonY = 65;
+
+      const glow = ctx.createRadialGradient(moonX, moonY, 15, moonX, moonY, 35);
+      glow.addColorStop(0, 'rgba(254, 240, 138, 0.4)');
+      glow.addColorStop(1, 'rgba(254, 240, 138, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, 35, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#FEF08A';
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(moonX - 7, moonY - 4, 17, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Clouds
+      clouds.forEach(c => {
+        c.x -= c.speed;
+        if (c.x < -100) { c.x = canvas.width + 50; c.y = 40 + Math.random() * 100; }
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.scale(c.scale, c.scale);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.arc(18, -10, 22, 0, Math.PI * 2);
+        ctx.arc(40, 0, 20, 0, Math.PI * 2); ctx.arc(20, 10, 18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    function drawGround() {
+      const groundY = canvas.height - GROUND_HEIGHT;
+
+      ctx.fillStyle = '#4ADE80';
+      ctx.fillRect(0, groundY, canvas.width, 14);
+
+      ctx.fillStyle = '#16A34A';
+      ctx.fillRect(0, groundY + 14, canvas.width, 4);
+
+      ctx.fillStyle = '#D97706';
+      ctx.fillRect(0, groundY + 18, canvas.width, GROUND_HEIGHT - 18);
+
+      ctx.strokeStyle = '#B45309';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      const tileSize = 20;
+      for (let x = -tileSize + (groundOffset % tileSize); x < canvas.width + tileSize; x += tileSize) {
+        ctx.moveTo(x, groundY + 18);
+        ctx.lineTo(x + 10, canvas.height);
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = '#15803D';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(canvas.width, groundY);
+      ctx.stroke();
+    }
+
+    let particles = [];
+    function createParticles(x, y, color, count) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: x, y: y,
+          vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5,
+          radius: Math.random() * 3 + 2, color: color, alpha: 1
+        });
+      }
+    }
+
+    function updateAndDrawParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.alpha -= 0.03;
+
+        if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    let floatingTexts = [];
+    function createFloatingText(x, y, text, color = '#FACC15') {
+      floatingTexts.push({ x: x, y: y, text: text, color: color, alpha: 1, vy: -1.2 });
+    }
+
+    function updateAndDrawFloatingTexts() {
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y += ft.vy; ft.alpha -= 0.015;
+
+        if (ft.alpha <= 0) { floatingTexts.splice(i, 1); continue; }
+
+        ctx.save();
+        ctx.globalAlpha = ft.alpha;
+        ctx.font = '900 24px Jua, sans-serif';
+        ctx.fillStyle = ft.color;
+        ctx.strokeStyle = '#0F172A';
+        ctx.lineWidth = 4;
+        ctx.textAlign = 'center';
+        ctx.strokeText(ft.text, ft.x, ft.y);
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+      }
+    }
+
+    function updateLivesDisplay() {
+      for (let i = 1; i <= 3; i++) {
+        const heartEl = document.getElementById(`heart${i}`);
+        if (heartEl) {
+          if (i <= lives) {
+            heartEl.className = 'fa-solid fa-heart drop-shadow-sm text-rose-500 scale-100 opacity-100 transition-all duration-300';
+          } else {
+            heartEl.className = 'fa-solid fa-heart text-slate-500 scale-90 opacity-30 transition-all duration-300';
+          }
+        }
+      }
+    }
+
+    function handleLethalHit() {
+      if (cat.hasArmor) {
+        cat.hasArmor = false;
+        invulnerabilityTimer = 70;
+        AudioEngine.playHit();
+        createFloatingText(cat.x, cat.y - 25, '🛡️ 갑옷 방어!', '#F59E0B');
+        createParticles(cat.x, cat.y, '#F59E0B', 20);
+        return;
+      }
+      loseLife();
+    }
+
+    function loseLife() {
+      lives--;
+      updateLivesDisplay();
+      AudioEngine.playHit();
+
+      createParticles(cat.x, cat.y, '#EF4444', 15);
+
+      if (lives <= 0) {
+        triggerGameOver();
+      } else {
+        invulnerabilityTimer = 90;
+        cat.y = Math.min(Math.max(cat.y, 80), canvas.height - GROUND_HEIGHT - 60);
+        cat.velocity = JUMP_STRENGTH_NORMAL * 0.6;
+      }
+    }
+
+    function checkCollisions() {
+      const groundY = canvas.height - GROUND_HEIGHT;
+
+      // Armor Collection
+      for (let i = armorItems.length - 1; i >= 0; i--) {
+        const item = armorItems[i];
+        if (!item.collected) {
+          const dist = Math.hypot(cat.x - item.x, cat.y - item.y);
+          if (dist < cat.radius + item.radius) {
+            item.collected = true;
+            cat.hasArmor = true;
+            AudioEngine.playArmor();
+            createFloatingText(cat.x, cat.y - 25, '🛡️ 갑옷 장착!', '#f59e0b');
+            createParticles(cat.x, cat.y, '#f59e0b', 16);
+            armorItems.splice(i, 1);
+            break;
+          }
+        }
+      }
+
+      // Water Hazard Collision
+      pipes.forEach(pipe => {
+        if (pipe.hasWater) {
+          const inPipeX = cat.x + cat.radius > pipe.x + 8 && cat.x - cat.radius < pipe.x + PIPE_WIDTH - 8;
+          const inWaterY = cat.y - cat.radius < pipe.topHeight + pipe.waterHeight && cat.y + cat.radius > pipe.topHeight;
+
+          if (inPipeX && inWaterY) {
+            if (cat.wetTimer <= 0) {
+              AudioEngine.playSplash();
+              createFloatingText(cat.x, cat.y - 25, '💦 물에 젖음!', '#38bdf8');
+            }
+            cat.wetTimer = 220;
+          }
+        }
+      });
+
+      // Update HUD Badges
+      const wetBadge = document.getElementById('wetBadge');
+      if (wetBadge) wetBadge.classList.toggle('hidden', cat.wetTimer <= 0);
+
+      const armorBadge = document.getElementById('armorBadge');
+      if (armorBadge) armorBadge.classList.toggle('hidden', !cat.hasArmor);
+
+      if (invulnerabilityTimer > 0) {
+        invulnerabilityTimer--;
+        return;
+      }
+
+      // Ground or Ceiling
+      if (cat.y + cat.radius >= groundY || cat.y - cat.radius <= 0) {
+        handleLethalHit();
+        return;
+      }
+
+      // Pipes
+      for (let i = 0; i < pipes.length; i++) {
+        const pipe = pipes[i];
+        const inPipeX = cat.x + cat.radius - 3 > pipe.x && cat.x - cat.radius + 3 < pipe.x + PIPE_WIDTH;
+        const hitTop = cat.y - cat.radius + 3 < pipe.topHeight;
+        const hitBottom = cat.y + cat.radius - 3 > pipe.bottomY;
+
+        if (inPipeX && (hitTop || hitBottom)) {
+          handleLethalHit();
+          return;
+        }
+      }
+
+      // Dogs
+      for (let i = 0; i < dogs.length; i++) {
+        const dog = dogs[i];
+        const dist = Math.hypot(cat.x - dog.x, cat.y - dog.y);
+        if (dist < cat.radius + dog.radius - 2) {
+          createFloatingText(cat.x, cat.y - 25, '🐶 멍멍!', '#f87171');
+          dogs.splice(i, 1);
+          handleLethalHit();
+          break;
+        }
+      }
+    }
+
+    function triggerGameOver() {
+      if (gameState === 'GAMEOVER') return;
+      gameState = 'GAMEOVER';
+
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('cat_survival_high_score', highScore.toString());
+      }
+
+      document.getElementById('finalScore').innerText = score;
+      document.getElementById('highScore').innerText = highScore;
+
+      document.getElementById('playingScreen').classList.add('hidden');
+      document.getElementById('gameOverScreen').classList.remove('hidden');
+    }
+
+    function updateGameLogic() {
+      frameCount++;
+
+      if (gameState === 'PLAYING') {
+        const maxSpeed = BASE_PIPE_SPEED * MAX_SPEED_MULTIPLIER;
+        const currentPipeSpeed = Math.min(BASE_PIPE_SPEED + (score * 0.18), maxSpeed);
+
+        const speedBadge = document.getElementById('speedBadge');
+        if (speedBadge) {
+          speedBadge.innerText = `⚡ ${(currentPipeSpeed / BASE_PIPE_SPEED).toFixed(1)}x`;
+        }
+
+        groundOffset -= currentPipeSpeed;
+
+        pipeSpawnDistanceCounter += currentPipeSpeed;
+        if (pipeSpawnDistanceCounter >= PIPE_SPAWN_INTERVAL) {
+          createPipe();
+          pipeSpawnDistanceCounter = 0;
+        }
+
+        for (let i = pipes.length - 1; i >= 0; i--) {
+          const p = pipes[i];
+          p.x -= currentPipeSpeed;
+
+          if (!p.passed && p.x + PIPE_WIDTH < cat.x) {
+            p.passed = true;
+            score++;
+            document.getElementById('currentScore').innerText = score;
+
+            if (score > 0 && score % 15 === 0) {
+              if (lives < 3) {
+                lives++;
+                updateLivesDisplay();
+                createFloatingText(cat.x, cat.y - 30, 'Good! ❤️ +1', '#38bdf8');
+              } else {
+                createFloatingText(cat.x, cat.y - 30, 'Good!', '#facc15');
+              }
+              AudioEngine.playBonus();
+            } else {
+              AudioEngine.playScore();
+            }
+          }
+
+          if (p.x < -PIPE_WIDTH - 20) pipes.splice(i, 1);
+        }
+
+        for (let i = dogs.length - 1; i >= 0; i--) {
+          dogs[i].x -= (currentPipeSpeed + dogs[i].vx);
+          if (dogs[i].x < -40) dogs.splice(i, 1);
+        }
+
+        for (let i = armorItems.length - 1; i >= 0; i--) {
+          armorItems[i].x -= currentPipeSpeed;
+          if (armorItems[i].x < -40) armorItems.splice(i, 1);
+        }
+
+        cat.update();
+        checkCollisions();
+      } else {
+        cat.update();
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawBackground();
+      drawPipes();
+      drawArmorItems();
+      drawDogs();
+      drawGround();
+
+      if (invulnerabilityTimer === 0 || Math.floor(invulnerabilityTimer / 6) % 2 === 0) {
+        cat.draw();
+      }
+
+      updateAndDrawParticles();
+      updateAndDrawFloatingTexts();
+    }
+
+    function gameLoop() {
+      updateGameLogic();
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function handleAction() {
+      AudioEngine.init();
+
+      if (gameState === 'START') {
+        startGame();
+      } else if (gameState === 'PLAYING') {
+        cat.jump();
+      }
+    }
+
+    function startGame() {
+      gameState = 'PLAYING';
+      score = 0;
+      lives = 3;
+      invulnerabilityTimer = 0;
+      pipes = [];
+      dogs = [];
+      armorItems = [];
+      floatingTexts = [];
+      pipeSpawnDistanceCounter = PIPE_SPAWN_INTERVAL;
+      cat.reset();
+
+      updateLivesDisplay();
+      document.getElementById('currentScore').innerText = '0';
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('gameOverScreen').classList.add('hidden');
+      document.getElementById('playingScreen').classList.remove('hidden');
+
+      cat.jump();
+    }
+
+    function restartGame(e) {
+      if (e) e.stopPropagation();
+      startGame();
+    }
+
+    function toggleSound(e) {
+      if (e) e.stopPropagation();
+      AudioEngine.init();
+      AudioEngine.muted = !AudioEngine.muted;
+
+      const icon = document.getElementById('soundIcon');
+      if (AudioEngine.muted) {
+        icon.className = 'fa-solid fa-volume-xmark text-slate-400 text-lg';
+      } else {
+        icon.className = 'fa-solid fa-volume-high text-amber-400 text-lg';
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handleAction();
+      }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      handleAction();
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      handleAction();
+    }, { passive: false });
+
+    cat.reset();
+    gameLoop();
+  </script>
+</body>
+</html>
